@@ -8,6 +8,25 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+function validate(validableInput) {
+    var isValid = true;
+    if (validableInput.required) {
+        isValid = isValid && !!validableInput.value.toString().trim().length;
+    }
+    if (validableInput.minLength && typeof validableInput.value === "string") {
+        isValid = isValid && validableInput.value.length >= validableInput.minLength;
+    }
+    if (validableInput.maxLength && typeof validableInput.value === "string") {
+        isValid = isValid && validableInput.value.length <= validableInput.maxLength;
+    }
+    if (validableInput.min && typeof validableInput.value === "number") {
+        isValid = isValid && validableInput.value >= validableInput.min;
+    }
+    if (validableInput.max && typeof validableInput.value === "number") {
+        isValid = isValid && validableInput.value <= validableInput.max;
+    }
+    return isValid;
+}
 function Autobind(_, _2, descriptor) {
     var originalMethod = descriptor.value;
     var adjDescriptor = {
@@ -32,9 +51,44 @@ var ProjectInput = /** @class */ (function () {
         this.configure();
         this.attach();
     }
+    ProjectInput.prototype.getUserInput = function () {
+        var title = this.titleInputElement.value;
+        var people = this.peopleInputElement.value;
+        var description = this.descriptionInputElement.value;
+        var validTtitle = {
+            value: title,
+            required: true
+        };
+        var validPeople = {
+            value: +people,
+            required: true,
+            min: 1,
+            max: 5
+        };
+        var validDescription = {
+            value: description,
+            required: true,
+            min: 5
+        };
+        if (!validate(validTtitle) || !validate(validPeople) || !validate(validDescription)) {
+            console.log('incorrect input');
+        }
+        else {
+            return [title, description, +people];
+        }
+    };
     ProjectInput.prototype.submitHandler = function (e) {
         e.preventDefault();
-        console.log(this.titleInputElement.value);
+        var userInput = this.getUserInput();
+        if (Array.isArray(userInput)) {
+            var title = userInput[0], description = userInput[1], people = userInput[2];
+            this.clearInputs();
+        }
+    };
+    ProjectInput.prototype.clearInputs = function () {
+        this.peopleInputElement.value = "";
+        this.descriptionInputElement.value = "";
+        this.titleInputElement.value = "";
     };
     ProjectInput.prototype.configure = function () {
         this.element.addEventListener("submit", this.submitHandler);
