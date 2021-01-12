@@ -70,7 +70,19 @@ class ProjectState {
     );
 
     this.projects.push(newProject);
+    this.updateListeners();
+  }
 
+  moveProject(projectId: string, newStatus: ProjectStatus) {
+    const project = this.projects.find((el) => el.id === projectId);
+
+    if (project && project.status !== newStatus) {
+      project.status = newStatus;
+      this.updateListeners();
+    }
+  }
+
+  private updateListeners() {
     // call all listeners
     for (const listener of this.listeners) {
       listener([...this.projects]);
@@ -198,7 +210,8 @@ class ProjectItem
 
   @Autobind
   dragStartHandler(e: DragEvent) {
-    console.log("dragStart");
+    e.dataTransfer!.setData("text/plain", this.project.id);
+    e.dataTransfer!.effectAllowed = "move";
   }
 
   dragEndHandler(e: DragEvent) {
@@ -230,6 +243,33 @@ class ProjectList
     this.renderContent();
   }
 
+  @Autobind
+  dragOverHandler(e: DragEvent) {
+    // allows dropping only plain/text
+    if (e.dataTransfer && e.dataTransfer.types[0] === "text/plain") {
+      e.preventDefault();
+      const listEl = this.element.querySelector("ul")!;
+
+      listEl.classList.add("droppable");
+    }
+  }
+
+  @Autobind
+  dragLeaveHandler(_: DragEvent) {
+    const listEl = this.element.querySelector("ul")!;
+
+    listEl.classList.remove("droppable");
+  }
+
+  @Autobind
+  dropHandler(e: DragEvent) {
+    const projectId = e.dataTransfer!.getData("text/plain");
+    projectState.moveProject(
+      projectId,
+      this.type === "active" ? ProjectStatus.Active : ProjectStatus.Finished
+    );
+  }
+
   // renders list element
   private renderProjects() {
     const listEl = document.getElementById(
@@ -255,6 +295,10 @@ class ProjectList
       this.assignedProjects = tempProjects;
       this.renderProjects();
     });
+
+    this.element.addEventListener("dragover", this.dragOverHandler);
+    this.element.addEventListener("drop", this.dropHandler);
+    this.element.addEventListener("dragleave", this.dragLeaveHandler);
   }
 
   // create lists
